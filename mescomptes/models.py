@@ -14,7 +14,7 @@ class Compte(models.Model):
     opening_date = models.DateField()
     opening_balance = models.FloatField(default=0, blank=True, null=True)
     models.FloatField()
-    devise = models.ForeignKey(Devise)
+    devise = models.ForeignKey(Devise, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name
