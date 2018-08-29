@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+test
+
+<form action="/comptes/set_categories" method="post">
+    {% csrf_token %}
+{{ form.as_p }}
+    <input type="submit" value="OK">
+</form>
+</body>
+</html>
