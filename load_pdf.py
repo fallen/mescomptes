@@ -9,7 +9,7 @@ from locale import atof
 
 
 def get_parser():
-    parser = argparse.ArgumentParser(description='Loads PDF from eLCL to database')
+    parser = argparse.ArgumentParser(description='Loads PDF from LCL/eLCL to database')
     parser.add_argument('files', help="file to load into the database", nargs='*')
     account_group = parser.add_mutually_exclusive_group(required=True)
     account_group.add_argument('--auto-detect-account', help="auto detect account name", action='store_true')
