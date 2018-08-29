@@ -18,8 +18,6 @@ def get_parser():
 
 
 def load_file(file, compte):
-    print("on importe \'{file}\'".format(file=file))
-
     cmd = "pdfgrep -m 1 -o \'du [0-9]{{1,2}}\.[0-9]{{1,2}}\.[0-9]{{4}} au [0-9]{{1,2}}\.[0-9]{{1,2}}\.[0-9]{{4}}\' {file}"\
         .format(file=file)
     proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, universal_newlines=True)
@@ -112,9 +110,10 @@ def main():
     parser = get_parser()
     args = parser.parse_args()
     for file in args.files:
+        print("on importe \'{file}\'".format(file=file))
         if args.auto_detect_account:
             print("on auto detect le compte")
-            cmd = "pdfgrep -m 1 'Compte' {file}".format(file=file)
+            cmd = "pdfgrep -m 1 'Compte : [0-9]+ [a-zA-Z]' {file}".format(file=file)
             proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, universal_newlines=True)
             output = proc.stdout
             res = re.match(".*Compte\s+:\s+(?P<compte>\d+\s\w).*", output)
