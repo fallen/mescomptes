@@ -16,9 +16,6 @@ def get_parser():
     account_group.add_argument('--account', help="set account name", action='store')
     return parser
 
-def daterange(d1, d2):
-    """ From https://stackoverflow.com/questions/14288498/creating-a-loop-for-two-dates/14288620 ."""
-    return (d1 + datetime.timedelta(days=i) for i in range((d2 - d1).days + 1))
 
 def load_file(filepath, compte):
     print("Importing \'{filepath}\'".format(filepath=filepath))
@@ -46,33 +43,31 @@ def load_file(filepath, compte):
     date_dst = datetime.datetime.strptime(res.group('date_dst'), date_format).date()
     print("Le fichier contient des données du {date_src} au {date_dst}".format(date_src=date_src, date_dst=date_dst))
 
-    for date in daterange(date_src, date_dst):
-        cmd = "pdfgrep '{date}' {filepath}".format(filepath=filepath, date=date.strftime(shortdate_format.replace(".", "\.")))
-        proc = subprocess.run(cmd, shell=True, check=False, stdout=subprocess.PIPE, universal_newlines=True)
-        output = proc.stdout
-        for line in output.splitlines():
-            regexp = "\s+(?P<ignored_date>\d+\.\d+)\s+(?P<libelle>(\S+\s)+(\S+))\s+(?P<date>{date_re})\s+(?P<montant>{montant_re})".format(date_re=shortdate_re, montant_re=montant_re)
-            res = re.match(regexp, line)
-            if res is not None:
-                inscription = res.groupdict()
-                credit = False
-                debit = False
-                if len(line) < 125:
-                    debit = True
-                elif len(line) > 130:
-                    credit = True
-                else:
-                    print("Cannot decide whether credit or debit for line {line}".format(line=line))
-                    sys.exit(1)
-                date2 = datetime.datetime.strptime(inscription['date'], shortdate_format).date()
-                assert date == date2
-                montant = atof(inscription['montant'].replace(' ', ''))
-                # Inject in database
-                compte.inscription_set.create(
-                        date=date,
-                        debit=montant if debit else None,
-                        credit=montant if credit else None,
-                        libelle=inscription['libelle'])
+    cmd = "pdfgrep '  {date}' {filepath}".format(filepath=filepath, date=shortdate_re)
+    proc = subprocess.run(cmd, shell=True, check=False, stdout=subprocess.PIPE, universal_newlines=True)
+    output = proc.stdout
+    for line in output.splitlines():
+        regexp = "\s+(?P<ignored_date>\d+\.\d+)\s+(?P<libelle>(\S+\s)+(\S+))\s+(?P<date>{date_re})\s+(?P<montant>{montant_re})".format(date_re=shortdate_re, montant_re=montant_re)
+        res = re.match(regexp, line)
+        if res is not None:
+            inscription = res.groupdict()
+            credit = False
+            debit = False
+            if len(line) < 125:
+                debit = True
+            elif len(line) > 130:
+                credit = True
+            else:
+                print("Cannot decide whether credit or debit for line {line}".format(line=line))
+                sys.exit(1)
+            date = datetime.datetime.strptime(inscription['date'], shortdate_format).date()
+            montant = atof(inscription['montant'].replace(' ', ''))
+            # Inject in database
+            compte.inscription_set.create(
+                    date=date,
+                    debit=montant if debit else None,
+                    credit=montant if credit else None,
+                    libelle=inscription['libelle'])
 
 
 def main():
