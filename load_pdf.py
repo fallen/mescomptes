@@ -49,42 +49,31 @@ def load_file(filepath, compte):
             for day in range(day_beg, day_end + 1):
                 cmd = "pdfgrep '{day:02d}\.{month:02d}\.{year}' {filepath}".format(filepath=filepath, day=day, month=month,
                                                                                year=short_year)
-                try:
-                    proc = subprocess.run(cmd, shell=True, check=True, stdout=subprocess.PIPE, universal_newlines=True)
-                    output = proc.stdout
-                    for line in output.splitlines():
-                        res = re.match(
-                            "\s+(?P<date>\d+\.\d+)\s+(?P<libelle>(\S+\s)+(\S+))\s+(?P<date2>\d+\.\d+\.\d+)\s+(?P<montant>((?:0|[1-9]\d{{0,2}}(?:\s?\d{{3}})*)(?:,\d+)?))".format(day=day, month=month), line)
-                        if res is not None:
-                            inscription = res.groupdict()
-                            print("libelle : {lib}".format(lib=inscription['libelle']))
-                            print("date : {date}".format(date=inscription['date2']))
-                            print("montant : {montant}".format(montant=inscription['montant']))
-                            credit = False
-                            debit = False
-                            if len(line) < 125:
-                                debit = True
-                            elif len(line) > 130:
-                                credit = True
-                            else:
-                                print("Cannot decide whether credit or debit for line {line}".format(line=line))
-                                sys.exit(1)
-                            # Inject in database
-                            try:
-                                date2 = inscription['date2']
-                                date = datetime.date(int(date2[6:8])+2000, int(date2[3:5]), int(date2[0:2]))
-                                print("date: {}".format(date))
-                                montant = atof(inscription['montant'].replace(' ', ''))
-                                compte.inscription_set.create(
-                                        date=date,
-                                        debit=montant if debit else None,
-                                        credit=montant if credit else None,
-                                        libelle=inscription['libelle'])
-                            except Exception as e:
-                                print("ouille : {}".format(e))
-                                sys.exit(1)
-                except:
-                    continue
+                proc = subprocess.run(cmd, shell=True, check=False, stdout=subprocess.PIPE, universal_newlines=True)
+                output = proc.stdout
+                for line in output.splitlines():
+                    res = re.match(
+                        "\s+(?P<date>\d+\.\d+)\s+(?P<libelle>(\S+\s)+(\S+))\s+(?P<date2>\d+\.\d+\.\d+)\s+(?P<montant>((?:0|[1-9]\d{{0,2}}(?:\s?\d{{3}})*)(?:,\d+)?))".format(day=day, month=month), line)
+                    if res is not None:
+                        inscription = res.groupdict()
+                        credit = False
+                        debit = False
+                        if len(line) < 125:
+                            debit = True
+                        elif len(line) > 130:
+                            credit = True
+                        else:
+                            print("Cannot decide whether credit or debit for line {line}".format(line=line))
+                            sys.exit(1)
+                        # Inject in database
+                        date2 = inscription['date2']
+                        date = datetime.date(int(date2[6:8])+2000, int(date2[3:5]), int(date2[0:2]))
+                        montant = atof(inscription['montant'].replace(' ', ''))
+                        compte.inscription_set.create(
+                                date=date,
+                                debit=montant if debit else None,
+                                credit=montant if credit else None,
+                                libelle=inscription['libelle'])
 
 
 def main():
