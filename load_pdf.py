@@ -16,64 +16,63 @@ def get_parser():
     account_group.add_argument('--account', help="set account name", action='store')
     return parser
 
+def daterange(d1, d2):
+    """ From https://stackoverflow.com/questions/14288498/creating-a-loop-for-two-dates/14288620 ."""
+    return (d1 + datetime.timedelta(days=i) for i in range((d2 - d1).days + 1))
 
 def load_file(filepath, compte):
-    cmd = "pdfgrep -m 1 -o \'du [0-9]{{1,2}}\.[0-9]{{1,2}}\.[0-9]{{4}} au [0-9]{{1,2}}\.[0-9]{{1,2}}\.[0-9]{{4}}\' {filepath}"\
-        .format(filepath=filepath)
-    proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, universal_newlines=True)
-    timeframestr = proc.stdout
+    print("Importing \'{filepath}\'".format(filepath=filepath))
 
-    res = re.match(
-        'du (?P<day_src>[0-9]{1,2})\.(?P<month_src>[0-9]{1,2})\.(?P<year_src>[0-9]{4}) au (?P<day_dst>[0-9]{1,2})\.(?P<month_dst>[0-9]{1,2})\.(?P<year_dst>[0-9]{4})', timeframestr)
+    # Long dates: 30.12.2018
+    date_re = "[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{4}"
+    date_format = "%d.%m.%Y"
+
+    # Short dates: 30.12.18
+    shortdate_re = "[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{2}"
+    shortdate_format = "%d.%m.%y"
+
+    # Money amount: 4 321,42
+    montant_re = "((?:0|[1-9]\d{0,2}(?:\s?\d{3})*)(?:,\d+)?)"
+
+    cmd = "pdfgrep -m 1 -o \'du {date_re} au {date_re}\' {filepath}".format(filepath=filepath, date_re=date_re)
+    proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, universal_newlines=True)
+    output = proc.stdout
+
+    res = re.match('du (?P<date_src>{date_re}) au (?P<date_dst>{date_re})'.format(date_re=date_re), output)
     if res is None:
         print("Cannot extract day/month/year from pdf file {filepath}".format(filepath=filepath))
         sys.exit(1)
-    day_src = int(res.group('day_src'))
-    day_dst = int(res.group('day_dst'))
-    month_src = int(res.group('month_src'))
-    month_dst = int(res.group('month_dst'))
-    year_src = int(res.group('year_src'))
-    year_dst = int(res.group('year_dst'))
-    print("Le fichier contient des données du {day_src}.{month_src}.{year_src} au {day_dst}.{month_dst}.{year_dst}"
-          .format(day_src=day_src, day_dst=day_dst,
-                  month_src=month_src, month_dst=month_dst,
-                  year_src=year_src, year_dst=year_dst))
+    date_src = datetime.datetime.strptime(res.group('date_src'), date_format).date()
+    date_dst = datetime.datetime.strptime(res.group('date_dst'), date_format).date()
+    print("Le fichier contient des données du {date_src} au {date_dst}".format(date_src=date_src, date_dst=date_dst))
 
-    for year in range(year_src, year_dst + 1):
-        short_year = "{year:d}".format(year=(year % 100))
-        month_beg = month_src if year == year_src else 1
-        month_end = month_dst if year == year_dst else 12
-        for month in range(month_beg, month_end + 1):
-            day_beg = day_src if month == month_src else 1
-            day_end = day_dst if month == month_dst else 31
-            for day in range(day_beg, day_end + 1):
-                cmd = "pdfgrep '{day:02d}\.{month:02d}\.{year}' {filepath}".format(filepath=filepath, day=day, month=month,
-                                                                               year=short_year)
-                proc = subprocess.run(cmd, shell=True, check=False, stdout=subprocess.PIPE, universal_newlines=True)
-                output = proc.stdout
-                for line in output.splitlines():
-                    res = re.match(
-                        "\s+(?P<date>\d+\.\d+)\s+(?P<libelle>(\S+\s)+(\S+))\s+(?P<date2>\d+\.\d+\.\d+)\s+(?P<montant>((?:0|[1-9]\d{{0,2}}(?:\s?\d{{3}})*)(?:,\d+)?))".format(day=day, month=month), line)
-                    if res is not None:
-                        inscription = res.groupdict()
-                        credit = False
-                        debit = False
-                        if len(line) < 125:
-                            debit = True
-                        elif len(line) > 130:
-                            credit = True
-                        else:
-                            print("Cannot decide whether credit or debit for line {line}".format(line=line))
-                            sys.exit(1)
-                        # Inject in database
-                        date2 = inscription['date2']
-                        date = datetime.date(int(date2[6:8])+2000, int(date2[3:5]), int(date2[0:2]))
-                        montant = atof(inscription['montant'].replace(' ', ''))
-                        compte.inscription_set.create(
-                                date=date,
-                                debit=montant if debit else None,
-                                credit=montant if credit else None,
-                                libelle=inscription['libelle'])
+    for date in daterange(date_src, date_dst):
+        cmd = "pdfgrep '{date}' {filepath}".format(filepath=filepath, date=date.strftime(shortdate_format.replace(".", "\.")))
+        proc = subprocess.run(cmd, shell=True, check=False, stdout=subprocess.PIPE, universal_newlines=True)
+        output = proc.stdout
+        for line in output.splitlines():
+            regexp = "\s+(?P<ignored_date>\d+\.\d+)\s+(?P<libelle>(\S+\s)+(\S+))\s+(?P<date>{date_re})\s+(?P<montant>{montant_re})".format(date_re=shortdate_re, montant_re=montant_re)
+            res = re.match(regexp, line)
+            if res is not None:
+                inscription = res.groupdict()
+                credit = False
+                debit = False
+                if len(line) < 125:
+                    debit = True
+                elif len(line) > 130:
+                    credit = True
+                else:
+                    print("Cannot decide whether credit or debit for line {line}".format(line=line))
+                    sys.exit(1)
+                date2 = datetime.datetime.strptime(inscription['date'], shortdate_format).date()
+                assert date == date2
+                montant = atof(inscription['montant'].replace(' ', ''))
+                # Inject in database
+                compte.inscription_set.create(
+                        date=date,
+                        debit=montant if debit else None,
+                        credit=montant if credit else None,
+                        libelle=inscription['libelle'])
 
 
 def main():
