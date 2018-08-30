@@ -44,7 +44,7 @@ def load_file(filepath, compte):
     print("Le fichier contient des données du {date_src} au {date_dst}".format(date_src=date_src, date_dst=date_dst))
 
     cmd = "pdfgrep '  {date}' {filepath}".format(filepath=filepath, date=shortdate_re)
-    proc = subprocess.run(cmd, shell=True, check=False, stdout=subprocess.PIPE, universal_newlines=True)
+    proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, universal_newlines=True)
     output = proc.stdout
     for line in output.splitlines():
         regexp = "^\s+(?P<ignored_date>\d+\.\d+)\s+(?P<libelle>(\S+\s)+(\S+))\s+(?P<date>{date_re})(?P<spacing>[\s.]+)(?P<montant>{montant_re})(?P<more_spacing>\s*\.?)$".format(date_re=shortdate_re, montant_re=montant_re)
