@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+<script>
+fetch('{% url 'get_balance_evolution' compte.id %}').then(response => response.json()).then(data =>
+  { Plotly.newPlot('myDiv', data.data, data.layout); }
+ ).catch(err => {
+  console.log("error : " + err);
+});
+</script>
+<div id="myDiv"></div>
+</body>
+</html>
