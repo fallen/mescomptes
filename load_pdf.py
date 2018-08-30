@@ -47,19 +47,20 @@ def load_file(filepath, compte):
     proc = subprocess.run(cmd, shell=True, check=False, stdout=subprocess.PIPE, universal_newlines=True)
     output = proc.stdout
     for line in output.splitlines():
-        regexp = "\s+(?P<ignored_date>\d+\.\d+)\s+(?P<libelle>(\S+\s)+(\S+))\s+(?P<date>{date_re})\s+(?P<montant>{montant_re})".format(date_re=shortdate_re, montant_re=montant_re)
+        regexp = "^\s+(?P<ignored_date>\d+\.\d+)\s+(?P<libelle>(\S+\s)+(\S+))\s+(?P<date>{date_re})(?P<spacing>[\s.]+)(?P<montant>{montant_re})(?P<more_spacing>\s*\.?)$".format(date_re=shortdate_re, montant_re=montant_re)
         res = re.match(regexp, line)
         if res is not None:
+            # print("Following line successfully parsed: '{}'".format(line))
             inscription = res.groupdict()
+            spacing = inscription['spacing']
             credit = False
             debit = False
-            if len(line) < 125:
+            if len(spacing) < 20:
                 debit = True
-            elif len(line) > 130:
+            elif len(spacing) > 30:
                 credit = True
             else:
-                print("Cannot decide whether credit or debit for line {line}".format(line=line))
-                sys.exit(1)
+                raise ValueError("Cannot decide whether credit or debit for line {line}".format(line=line))
             date = datetime.datetime.strptime(inscription['date'], shortdate_format).date()
             montant = atof(inscription['montant'].replace(' ', ''))
             # Inject in database
