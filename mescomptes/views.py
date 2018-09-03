@@ -1,6 +1,8 @@
 from django.shortcuts import render
 from django.utils.translation import ugettext as _
 from django.http import Http404, JsonResponse
+from django.db.models.functions import TruncMonth
+from django.db.models import Sum
 
 from mescomptes.forms import SetCategoriesForm
 from mescomptes.models import Inscription, Compte
@@ -90,6 +92,56 @@ def get_balance_evolution(request, compte_num):
                 balance = balance + inscription.credit
             d['x'].append(inscription.date)
             d['y'].append(balance)
+        return JsonResponse(data)
+    else:
+        raise Http404(_("Only GET method is allowed"))  # should be http 405 error code
+
+
+def get_monthly_debit_evolution(request, compte_num):
+    if request.method == "GET":
+        try:
+            compte = Compte.objects.get(pk=compte_num)
+        except Compte.DoesNotExist:
+            raise Http404(_("This account does not exist"))
+        data = dict({
+            "data": [{
+                    'x': [],
+                    'y': [],
+                    "type": "scatter",
+                    "mode": "lines",
+                 }],
+            "layout": {
+                "title": "Evolution des débits mensuels",
+                "xaxis": {
+                    "type": "date",
+                    "rangeselector": {
+                        "buttons": [
+                            {
+                                "count": 6,
+                                "label": "6m",
+                                "step": "month",
+                                "stepmode": "backward",
+                            },
+                            {
+                                "step": "all",
+                            }
+                        ]
+                    }
+                }
+            }
+        })
+        d = data['data'][0]
+        query_set = Inscription.objects.annotate(month=TruncMonth('date')).values('month').\
+            annotate(somme=Sum('debit')).order_by('month')
+        first_date = query_set.earliest()['month']
+        last_date = query_set.latest()['month']
+        data['layout']['xaxis']['range'] = [first_date, last_date]
+        data['layout']['xaxis']['rangeslider'] = {
+            "range":  [first_date, last_date]
+        }
+        for inscription in query_set:
+            d['x'].append(inscription['month'])
+            d['y'].append(inscription['somme'])
         return JsonResponse(data)
     else:
         raise Http404(_("Only GET method is allowed"))  # should be http 405 error code

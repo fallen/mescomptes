@@ -12,7 +12,13 @@ fetch('{% url 'get_balance_evolution' compte.id %}').then(response => response.j
  ).catch(err => {
   console.log("error : " + err);
 });
+fetch('{% url 'get_monthly_debit_evolution' compte.id %}').then(response => response.json()).then(data =>
+  { Plotly.newPlot('monthly_debit_evolution', data.data, data.layout); }
+ ).catch(err => {
+  console.log("error : " + err);
+});
 </script>
 <div id="balance_evolution"></div>
+<div id="monthly_debit_evolution"></div>
 </body>
 </html>
