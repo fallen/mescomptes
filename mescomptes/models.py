@@ -12,8 +12,8 @@ class Devise(models.Model):
 class Compte(models.Model):
     name = models.TextField(unique=True)
     opening_date = models.DateField()
-    opening_balance = models.FloatField(default=0, blank=True, null=True)
-    models.FloatField()
+    opening_balance = models.DecimalField(default=0, blank=True, null=True, decimal_places=2, max_digits=20)
+    models.DecimalField()
     devise = models.ForeignKey(Devise, on_delete=models.CASCADE)
 
     def __str__(self):
@@ -30,8 +30,8 @@ class Categorie(models.Model):
 
 class Inscription(models.Model):
     date = models.DateField()
-    credit = models.FloatField(default=0, blank=True, null=True)
-    debit = models.FloatField(default=0, blank=True, null=True)
+    credit = models.DecimalField(default=0, blank=True, null=True, decimal_places=2, max_digits=20)
+    debit = models.DecimalField(default=0, blank=True, null=True, decimal_places=2, max_digits=20)
     libelle = models.TextField(blank=True)
     compte = models.ForeignKey(Compte, on_delete=models.CASCADE)
     categorie = models.ManyToManyField(Categorie, blank=True)
