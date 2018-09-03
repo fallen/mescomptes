@@ -2,17 +2,17 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>Compte {{ compte.name }}</title>
      <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
 <script>
 fetch('{% url 'get_balance_evolution' compte.id %}').then(response => response.json()).then(data =>
-  { Plotly.newPlot('myDiv', data.data, data.layout); }
+  { Plotly.newPlot('balance_evolution', data.data, data.layout); }
  ).catch(err => {
   console.log("error : " + err);
 });
 </script>
-<div id="myDiv"></div>
+<div id="balance_evolution"></div>
 </body>
 </html>

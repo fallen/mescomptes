@@ -40,18 +40,50 @@ def get_balance_evolution(request, compte_num):
             raise Http404(_("This account does not exist"))
         data = dict({
             "data": [{
-                    'x': [],
-                    'y': []
+                    "x": [],
+                    "y": [],
+                    "type": "scatter",
+                    "mode": "lines",
                  }],
             "layout": {
-                "title": "Compte: {}".format(compte.name)
+                "title": "Evolution de la balance du compte",
+                "xaxis": {
+                    "type": "date",
+                    "rangeselector": {
+                        "buttons": [
+                            {
+                                "count": 1,
+                                "label": "1m",
+                                "step": "month",
+                                "stepmode": "backward",
+                            },
+                            {
+                                "count": 6,
+                                "label": "6m",
+                                "step": "month",
+                                "stepmode": "backward",
+                            },
+                            {
+                                "step": "all",
+                            }
+                        ]
+                    }
+                }
             }
         })
         d = data['data'][0]
         d['x'].append(compte.opening_date)
         d['y'].append(compte.opening_balance)
         balance = compte.opening_balance
-        for inscription in compte.inscription_set.all().order_by('date'):
+        query_set = compte.inscription_set.all().order_by('date')
+        first_date = compte.opening_date
+        last_date = query_set.latest().date
+        data['layout']['xaxis']['range'] = [first_date, last_date]
+        data['layout']['xaxis']['rangeslider'] = {
+            "range":  [first_date, last_date]
+        }
+
+        for inscription in query_set:
             if inscription.debit:
                 balance = balance - inscription.debit
             if inscription.credit:

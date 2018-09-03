@@ -38,3 +38,6 @@ class Inscription(models.Model):
 
     def __str__(self):
         return "{}: {} debit: {} credit: {}".format(self.date, self.libelle, self.debit, self.credit)
+
+    class Meta:
+        get_latest_by = 'date'
