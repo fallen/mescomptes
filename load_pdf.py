@@ -31,7 +31,7 @@ def load_file(filepath, compte):
     # Money amount: 4 321,42
     montant_re = "((?:0|[1-9]\d{0,2}(?:\s?\d{3})*)(?:,\d+)?)"
 
-    cmd = "pdfgrep -m 1 -o \'du {date_re} au {date_re}\' {filepath}".format(filepath=filepath, date_re=date_re)
+    cmd = "pdfgrep -m 1 -o \'du {date_re} au {date_re}\' '{filepath}'".format(filepath=filepath, date_re=date_re)
     proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, universal_newlines=True)
     output = proc.stdout
 
@@ -43,7 +43,7 @@ def load_file(filepath, compte):
     date_dst = datetime.datetime.strptime(res.group('date_dst'), date_format).date()
     print("Le fichier contient des données du {date_src} au {date_dst}".format(date_src=date_src, date_dst=date_dst))
 
-    cmd = "pdfgrep '  {date}' {filepath}".format(filepath=filepath, date=shortdate_re)
+    cmd = "pdfgrep '  {date}' '{filepath}'".format(filepath=filepath, date=shortdate_re)
     proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, universal_newlines=True)
     output = proc.stdout
     for line in output.splitlines():
@@ -83,7 +83,7 @@ def main():
         print("Importing \'{filepath}\'".format(filepath=filepath))
         if args.auto_detect_account:
             print("on auto detect le compte")
-            cmd = "pdfgrep -m 1 'Compte : [0-9]+ [a-zA-Z]' {filepath}".format(filepath=filepath)
+            cmd = "pdfgrep -m 1 'Compte : [0-9]+ [a-zA-Z]' '{filepath}'".format(filepath=filepath)
             proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, universal_newlines=True)
             output = proc.stdout
             res = re.match(".*Compte\s+:\s+(?P<compte>\d+\s\w).*", output)
