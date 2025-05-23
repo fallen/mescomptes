@@ -20,9 +20,16 @@ class Compte(models.Model):
         return self.name
 
 
+class Regex(models.Model):
+    expr = models.TextField()
+
+    def __str__(self):
+        return self.expr
+
 class Categorie(models.Model):
     name = models.TextField(unique=True)
     mensualiser = models.BooleanField(default=False)
+    regexs = models.ManyToManyField(Regex)
 
     def __str__(self):
         return self.name

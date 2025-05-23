@@ -1,8 +1,8 @@
 from django.contrib import admin
 from django.http import HttpResponseRedirect
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
-from mescomptes.models import Compte, Inscription, Devise, Categorie
+from mescomptes.models import Compte, Inscription, Devise, Categorie, Regex
 
 
 @admin.register(Compte)
@@ -40,4 +40,8 @@ class DeviseAdmin(admin.ModelAdmin):
 
 @admin.register(Categorie)
 class CategorieAdmin(admin.ModelAdmin):
+    pass
+
+@admin.register(Regex)
+class RegexAdmin(admin.ModelAdmin):
     pass

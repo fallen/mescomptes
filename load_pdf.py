@@ -57,18 +57,21 @@ def load_file(filepath, compte):
             debit = False
             if len(spacing) < 20:
                 debit = True
-            elif len(spacing) > 30:
+            elif len(spacing) >= 30:
                 credit = True
             else:
-                raise ValueError("Cannot decide whether credit or debit for line {line}".format(line=line))
+                raise ValueError("Cannot decide (spacing {space}) whether credit or debit for line {line}".format(line=line, space=len(spacing)))
             date = datetime.datetime.strptime(inscription['date'], shortdate_format).date()
             montant = atof(inscription['montant'].replace(' ', ''))
+            print("{}: {} {}{}".format(date, inscription['libelle'], "+" if credit else "-", montant))
             # Inject in database
             compte.inscription_set.create(
                     date=date,
                     debit=montant if debit else None,
                     credit=montant if credit else None,
                     libelle=inscription['libelle'])
+        else:
+            print("One line could not be parsed: {}".format(line))
 
 
 def main():

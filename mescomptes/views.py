@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from django.http import Http404, JsonResponse
 from django.db.models.functions import TruncMonth
 from django.db.models import Sum
