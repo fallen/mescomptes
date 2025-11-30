@@ -4,8 +4,33 @@ from django.http import Http404, JsonResponse
 from django.db.models.functions import TruncMonth
 from django.db.models import Sum
 
+from dateutil.relativedelta import relativedelta
+
 from mescomptes.forms import SetCategoriesForm
-from mescomptes.models import Inscription, Compte
+from mescomptes.models import Inscription, Compte, Categorie
+
+class MonthReport:
+    def __init__(self, inscriptions):
+        self.inscriptions = inscriptions
+        start_date = inscriptions[0].date
+        end_date = inscriptions[-1].date
+        self.month = start_date.month
+        self.year = start_date.year
+        self.date = start_date
+        self.categories = {}
+        for i in self.inscriptions:
+            if i.categorie.exists():
+                cats = i.categorie.all()
+            else:
+                cats = ["Divers"]
+            for c in cats:
+                if c not in self.categories:
+                    self.categories[c] = { 'inscriptions': list(), 'total': 0}
+                self.categories[c]['inscriptions'].append(i)
+                if i.debit is not None:
+                    self.categories[c]['total'] -= i.debit
+                if i.credit is not None:
+                    self.categories[c]['total'] += i.credit
 
 
 def index(request):
@@ -25,6 +50,27 @@ def set_categories(request):
             pass
     return render(request, 'mescomptes/set_categories.html', {'form': form})
 
+def view_cat(request, compte_nom):
+    try:
+        compte = Compte.objects.get(name=compte_nom)
+    except Compte.DoesNotExist:
+        raise Http404(_("This account does not exist"))
+
+    inscriptions = list(Inscription.objects.all())
+    first_date = inscriptions[0].date
+    last_date = inscriptions[-1].date
+    cur_date = first_date
+    month_reports = list()
+    while True:
+        cur_inscriptions = list(Inscription.objects.filter(date__year=cur_date.year, date__month=cur_date.month).all())
+        month_report = MonthReport(cur_inscriptions)
+        month_reports.append(month_report)
+        if cur_date.year == last_date.year and cur_date.month == last_date.month:
+            break
+        cur_date = cur_date + relativedelta(months=1)
+
+    categories = Categorie.objects.all()
+    return render(request, 'mescomptes/view_cat.html', {'compte': compte, 'categories': categories, 'month_reports': month_reports})
 
 def compte_view(request, compte_nom):
     try:

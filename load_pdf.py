@@ -47,7 +47,7 @@ def load_file(filepath, compte):
     proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, universal_newlines=True)
     output = proc.stdout
     for line in output.splitlines():
-        regexp = "^\s+(?P<ignored_date>\d+\.\d+)\s+(?P<libelle>(\S+\s)+(\S+))\s+(?P<date>{date_re})(?P<spacing>[\s.]+)(?P<montant>{montant_re})(?P<more_spacing>\s*\.?)$".format(date_re=shortdate_re, montant_re=montant_re)
+        regexp = "^\s*(?P<ignored_date>\d+\.\d+)\s+(?P<libelle>(\S+\s)+(\S+))?\s+(?P<date>{date_re})(?P<spacing>[\s.]+)(?P<montant>{montant_re})(?P<more_spacing>\s*\.?)$".format(date_re=shortdate_re, montant_re=montant_re)
         res = re.match(regexp, line)
         if res is not None:
             # print("Following line successfully parsed: '{}'".format(line))
@@ -64,6 +64,8 @@ def load_file(filepath, compte):
             date = datetime.datetime.strptime(inscription['date'], shortdate_format).date()
             montant = atof(inscription['montant'].replace(' ', ''))
             print("{}: {} {}{}".format(date, inscription['libelle'], "+" if credit else "-", montant))
+            if inscription['libelle'] is None:
+                inscription['libelle'] = 'XXX NO LABEL XXX'
             # Inject in database
             compte.inscription_set.create(
                     date=date,
